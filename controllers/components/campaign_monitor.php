@@ -185,17 +185,13 @@ class CampaignMonitorComponent extends Object {
 	}
 	
 	function sendCampaign($campaign_id, $delivery_date=null, $conf_email_address=null) {
-			$data = array();
+		$data = array();
+		
+		if(is_string($campaign_id) || is_int($campaign_id)) {
+			$data['CampaignID'] = $campaign_id;
 			
-			if(is_string($campaign_id) || is_int($campaign_id)) {
-				$data['CampaignID'] = $campaign_id;
-			} else {
-				/* email is not an email, return false */
-				$this->error = 'Please provide a valid campaign ID.';
-				return false;
-				exit();
-			}
 			$data['SendDate'] = ($delivery_date) ? $delivery_date : date('Y-m-d H:i:s');
+			
 			if($conf_email_address) {
 				$data['ConfirmationEmail'] = $conf_email_address;
 			} else if(Configure::read('CampaignMonitor.confirmation_email_address')) {
@@ -216,6 +212,51 @@ class CampaignMonitorComponent extends Object {
 				$this->error = 'A client ID must be provided before campaigns can be gathered.';
 				return false;
 			}
+		} else {
+			/* email is not an email, return false */
+			$this->error = 'Please provide a valid campaign ID.';
+			return false;
+			exit();
+		}
+	}
+	
+	/*
+	 * Campaign.GetSummary: http://www.campaignmonitor.com/api/Campaign.GetSummary.aspx
+	 * Campaign.GetOpens: http://www.campaignmonitor.com/api/Campaign.GetOpens.aspx
+	 */
+	function getStats($campaign_id, $type="summary") {
+		$data = array();
+		
+		switch($type) {
+			case 'open':
+				$action = 'Opens';
+				break;
+			case 'bounces':
+				$action = 'Bounces';
+				break;
+			case 'clicks':
+				$action = 'Clicks';
+				break;
+			case 'unsubscribes':
+				$action = 'Unsubscribes';
+				break;
+			default:
+				$action = 'Summary';
+		}
+		
+		if(is_string($campaign_id) || is_int($campaign_id)) {
+			$data['CampaignID'] = $campaign_id;
+			if($this->__postRequest('Campaign.Get'.$action, $data)) {
+				$eval = $this->__evalResult(true);
+				return $eval;
+			} else {
+				return false;
+			}
+		} else {
+			/* email is not an email, return false */
+			$this->error = 'Please provide a valid campaign ID.';
+			return false;
+		}
 	}
 	
 	function getClients() {
