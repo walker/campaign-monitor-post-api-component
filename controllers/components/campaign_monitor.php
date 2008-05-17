@@ -25,6 +25,9 @@ class CampaignMonitorComponent extends Object {
 		if(Configure::read('CampaignMonitor.list_id')) {
 			$this->list_id = Configure::read('CampaignMonitor.list_id');
 		}
+		if(Configure::read('CampaignMonitor.synch_system_time')) {
+			$this->getSystemTime();
+		}
 		$this->validate = new Validation();
 	}
 	
@@ -46,7 +49,7 @@ class CampaignMonitorComponent extends Object {
 			exit();
 		}
 		$action = ($force_add) ? 'Subscriber.AddAndResubscribe' : 'Subscriber.Add';
-		if($this->__postRequest($data, $action)) {
+		if($this->__postRequest($action, $data)) {
 			return $this->__evalResult(true);
 		} else {
 			return false;
@@ -64,7 +67,7 @@ class CampaignMonitorComponent extends Object {
 			return false;
 			exit();
 		}
-		if($this->__postRequest($data, 'Subscriber.Unsubscribe')) {
+		if($this->__postRequest('Subscriber.Unsubscribe', $data)) {
 			return $this->__evalResult(true);
 		} else {
 			return false;
@@ -82,7 +85,7 @@ class CampaignMonitorComponent extends Object {
 			return false;
 			exit();
 		}
-		if($this->__postRequest($data, 'Subscribers.GetSingleSubscriber')) {
+		if($this->__postRequest('Subscribers.GetSingleSubscriber', $data)) {
 			$eval = $this->__evalResult();
 			return $eval['anyType'];
 		} else {
@@ -101,7 +104,7 @@ class CampaignMonitorComponent extends Object {
 			return false;
 			exit();
 		}
-		if($this->__postRequest($data, 'Subscribers.GetIsSubscribed')) {
+		if($this->__postRequest('Subscribers.GetIsSubscribed', $data)) {
 			$eval = $this->__evalResult(true);
 			return $eval;
 		} else {
@@ -127,7 +130,7 @@ class CampaignMonitorComponent extends Object {
 			$data['date'] = $date;
 		}
 		$data['ListID'] = ($list_id) ? $list_id : $this->list_id;
-		if($this->__postRequest($data, 'Subscribers.Get'.$action)) {
+		if($this->__postRequest('Subscribers.Get'.$action, $data)) {
 			$eval = $this->__evalResult();
 			return $eval['anyType'];
 		} else {
@@ -135,6 +138,12 @@ class CampaignMonitorComponent extends Object {
 		}
 	}
 	
+	/*
+	 * Campaign monitor's getLists & getSegments in a single method
+	 * set second arg to true for segments
+	 * GetLists: http://www.campaignmonitor.com/api/Client.GetLists.aspx
+	 * GetSegments: http://www.campaignmonitor.com/api/Client.GetSegments.aspx
+	 */
 	function getLists($client_id=null, $segments=false) {
 		if($client_id!=null)
 			$this->setClientId($client_id);
@@ -142,7 +151,7 @@ class CampaignMonitorComponent extends Object {
 		if(!empty($this->client_id)) {
 			$data = array('ClientID'=>$this->client_id);
 			$action = ($segments) ? 'Segments' : 'Lists';
-			if($this->__postRequest($data, 'Client.Get'.$action)) {
+			if($this->__postRequest('Client.Get'.$action, $data)) {
 				$eval = $this->__evalResult();
 				return $eval['anyType'];
 			} else {
@@ -154,7 +163,81 @@ class CampaignMonitorComponent extends Object {
 		}
 	}
 	
-	function __postRequest($data, $action=null) {
+	/*
+	 * GetCampaigns: http://www.campaignmonitor.com/api/Client.GetCampaigns.aspx
+	 */
+	function getCampaigns($client_id=null) {
+		if($client_id!=null)
+			$this->setClientId($client_id);
+		
+		if(!empty($this->client_id)) {
+			$data = array('ClientID'=>$this->client_id);
+			if($this->__postRequest('Client.GetCampaigns', $data)) {
+				$eval = $this->__evalResult();
+				return $eval['anyType'];
+			} else {
+				return false;
+			}
+		} else {
+			$this->error = 'A client ID must be provided before campaigns can be gathered.';
+			return false;
+		}
+	}
+	
+	function sendCampaign($campaign_id, $delivery_date=null, $conf_email_address=null) {
+			$data = array();
+			
+			if(is_string($campaign_id) || is_int($campaign_id)) {
+				$data['CampaignID'] = $campaign_id;
+			} else {
+				/* email is not an email, return false */
+				$this->error = 'Please provide a valid campaign ID.';
+				return false;
+				exit();
+			}
+			$data['SendDate'] = ($delivery_date) ? $delivery_date : date('Y-m-d H:i:s');
+			if($conf_email_address) {
+				$data['ConfirmationEmail'] = $conf_email_address;
+			} else if(Configure::read('CampaignMonitor.confirmation_email_address')) {
+				$data['ConfirmationEmail'] = Configure::read('CampaignMonitor.confirmation_email_address');
+			} else {
+				$data['ConfirmationEmail'] = 'webmaster@'.$SERVER['HTTP_HOST'];
+			}
+			
+			if(!empty($this->client_id)) {
+				$data = array('ClientID'=>$this->client_id);
+				if($this->__postRequest('Campaign.Send', $data)) {
+					$eval = $this->__evalResult(true);
+					return $eval;
+				} else {
+					return false;
+				}
+			} else {
+				$this->error = 'A client ID must be provided before campaigns can be gathered.';
+				return false;
+			}
+	}
+	
+	function getClients() {
+		if($this->__postRequest('User.GetClients')) {
+			$eval = $this->__evalResult();
+			return $eval['anyType'];
+		} else {
+			return false;
+		}
+	}
+	
+	function getSystemTime() {
+		if($this->__postRequest('User.GetSystemDate')) {
+			$eval = $this->__evalResult();
+			$this->system_time = $eval['anyType'];
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	function __postRequest($action=null, $data=array()) {
 		$post_string = array('ApiKey='.$this->api_key);
 		foreach($data as $key => $value) {
 			$post_string[] = $key.'='.urlencode($value);
