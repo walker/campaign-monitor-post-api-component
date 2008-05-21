@@ -32,15 +32,24 @@ class CampaignMonitorComponent extends Object {
 	}
 	
 	function setClientId($id=null) {
-		if(is_int($id)) {
-			$this->clien_id = $id;
+		if(is_int($id) || is_string($id)) {
+			$this->client_id = $id;
+			return true;
+		} else {
+			return false;
 		}
 	}
 	
 	function addSubscriber($email, $name=null, $list_id=null, $force_add=false) {
 		$data = array();
 		$data['ListID'] = ($list_id) ? $list_id : $this->list_id;
-		if($name && is_string($name)) { $data['Name'] = $name; } else if($name && !is_string($name)) { /* throw error here */ }
+		if($name) {
+			if(is_string($name)) { $data['Name'] = $name; } else {
+				return false;
+				exit();
+			}
+		} else { $data['Name'] = ''; }
+		
 		if($this->validate->email($email)) {
 			$data['Email'] = $email;
 		} else {
@@ -48,7 +57,9 @@ class CampaignMonitorComponent extends Object {
 			return false;
 			exit();
 		}
+		
 		$action = ($force_add) ? 'Subscriber.AddAndResubscribe' : 'Subscriber.Add';
+		
 		if($this->__postRequest($action, $data)) {
 			return $this->__evalResult(true);
 		} else {
@@ -127,7 +138,13 @@ class CampaignMonitorComponent extends Object {
 		if(!$date) {
 			$data['date'] = date('Y-m-d H:i:s', strtotime('-10 years'));
 		} else {
-			$data['date'] = $date;
+			// should check here with pattern matching that date is correct
+			if(preg_match('/([1-2][0-9])\d{2}-((0[1-9])|(1[0-2]))-((0[1-9])|([1-2][0-9])|(3[0-1]))(T|\s)(([0-1][0-9])|(2[0-3])):([0-5][0-9]):([0-5][0-9])/', $date)) {
+				$data['date'] = $date;
+			} else {
+				$this->error = 'The date entered must be formatted in "Y-m-d H:i:s" format';
+				return false;
+			}
 		}
 		$data['ListID'] = ($list_id) ? $list_id : $this->list_id;
 		if($this->__postRequest('Subscribers.Get'.$action, $data)) {
@@ -153,7 +170,11 @@ class CampaignMonitorComponent extends Object {
 			$action = ($segments) ? 'Segments' : 'Lists';
 			if($this->__postRequest('Client.Get'.$action, $data)) {
 				$eval = $this->__evalResult();
-				return $eval['anyType'];
+				if($eval==null) {
+					return array();
+				} else {
+					return $eval['anyType'];
+				}
 			} else {
 				return false;
 			}
