@@ -12,7 +12,7 @@ class CampaignMonitorComponent extends Object {
 	var $client_id;
 	var $campaign_id;
 	var $list_id;
-	var $url = 'http://app.campaignmonitor.com/api/api.asmx';
+	var $url = 'http://app.createsend.com/api/api.asmx';
 	
 	//Setup the basics
 	function startup(&$controller) {
@@ -341,18 +341,21 @@ class CampaignMonitorComponent extends Object {
 	function __iterate($children) {
 		$nodes = array();
 		$count = count($children);
+		
 		for($i = 0; $i<$count; $i++) {
-			$tmp_name = explode(':', $children[$i]->name);
+			$tmp_name = $children[$i]->name;
 			if(isset($children[$i]->children) && count($children[$i]->children)>0) {
-				if($count>1)
-				$nodes[$tmp_name[2]][$i] = $this->__iterate($children[$i]->children);
-				else
-				$nodes[$tmp_name[2]] = $this->__iterate($children[$i]->children);
+				if($count>1) {
+					$nodes[$tmp_name][$i] = $this->__iterate($children[$i]->children);
+				} else {
+					$nodes[$tmp_name] = $this->__iterate($children[$i]->children);
+				}
 			} else {
-				if($count>1)
-				$nodes[$tmp_name[2]] = $children[$i]->value;
-				else
-				$nodes[$tmp_name[2]][$i] = $children[$i]->value;
+				if($count>1) {
+					$nodes[$tmp_name] = $children[$i]->value;
+				} else {
+					$nodes[$tmp_name][$i] = $children[$i]->value;
+				}
 			}
 		}
 		return $nodes;
