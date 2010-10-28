@@ -3,7 +3,7 @@
 class FakeCampaignMonitorController {}
 
 class CampaignMonitorTestCase extends CakeTestCase {
-
+	
 	function testSetClientId() {
 		App::import('Component', 'CampaignMonitor');
 		
@@ -29,13 +29,13 @@ class CampaignMonitorTestCase extends CakeTestCase {
 		$this->CampaignMonitorComponentTest = new CampaignMonitorComponent();
 		
 		$this->CampaignMonitorComponentTest->startup(&$controller);
-		
+
 		$result = $this->CampaignMonitorComponentTest->addSubscriber('test1@test');
 		$this->assertFalse($result);
-		
+
 		$result = $this->CampaignMonitorComponentTest->addSubscriber('test2@test.com');
 		$this->assertTrue($result);
-		
+
 		$result = $this->CampaignMonitorComponentTest->addSubscriber(1241);
 		$this->assertFalse($result);
 		
@@ -45,7 +45,7 @@ class CampaignMonitorTestCase extends CakeTestCase {
 		$result = $this->CampaignMonitorComponentTest->addSubscriber('test3@test.com', 'Test Email');
 		$this->assertTrue($result);
 	}
-	
+
 	function testGetSingleSubscriber() {
 		App::import('Component', 'CampaignMonitor');
 		
@@ -114,7 +114,7 @@ class CampaignMonitorTestCase extends CakeTestCase {
 		$result = $this->CampaignMonitorComponentTest->getTypeFromList(date('Y-m-d H:i:s', strtotime('-2 years')));
 		$this->assertIsA($result, 'array');
 	}
-
+	
 	function testGetLists() {
 		App::import('Component', 'CampaignMonitor');
 		

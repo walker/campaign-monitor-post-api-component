@@ -61,6 +61,7 @@ class CampaignMonitorComponent extends Object {
 		$action = ($force_add) ? 'Subscriber.AddAndResubscribe' : 'Subscriber.Add';
 		
 		if($this->__postRequest($action, $data)) {
+			// $this->log($this->__evalResult(true));
 			return $this->__evalResult(true);
 		} else {
 			return false;
@@ -302,15 +303,16 @@ class CampaignMonitorComponent extends Object {
 	function __postRequest($action=null, $data=array()) {
 		$post_string = array('ApiKey='.$this->api_key);
 		foreach($data as $key => $value) {
-			$post_string[] = $key.'='.urlencode($value);
+			$post_string[] = $key.'='.rawurlencode($value);
 		}
 		$post_string = implode('&', $post_string);
 		
 		$socket = new HttpSocket();
 		$action = ($action) ? '/'.$action : '';
-		// pr($this->url.$action);
-		// pr($post_string);
+		// $this->log($this->url.$action);
+		// $this->log($post_string);
 		$this->result  = $socket->post($this->url.$action, $post_string);
+		// $this->log(var_export($this->result, true));
 		return true;
 	}
 	
@@ -320,8 +322,10 @@ class CampaignMonitorComponent extends Object {
 		
 		$this->nodes = $this->__iterate($xml->children);
 		if($boolean) {
+			// pr($this->nodes);
+			
 			// return true or false depending on status message
-			if((isset($this->nodes['Result']['Code']) && $this->nodes['Result']['Code']=='0') || (isset($this->nodes['anyType'][0]) && $this->nodes['anyType'][0]=='True')) {
+			if((isset($this->nodes['Result']['Code']) && $this->nodes['Result']['Code'][0]['#text'][0]=='0') || (isset($this->nodes['anyType']['#text'][0]) && $this->nodes['anyType']['#text'][0]=='True')) {
 				$this->error = false;
 				return true;
 			} else {
